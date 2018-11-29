@@ -134,8 +134,10 @@ Spring DispatcherServlet就是提供了这样的能力。 它是Spring Web MVC�
 - 使用任何LocaleResolver实现解析语言环境，包括cookie，会话，Accept HTTP标头或确定用户期望的语言环境的任何其他方式
 
 ## 处理HTTP请求
+首先，我们来跟踪一个简单的请求从到达控制层的方法到返回到浏览器客户端的过程。
 
+DispatcherServlet类有着很深的继承层次结构。从上到下逐一地理解这些继承层次是值得的。请求处理方法是我们最感兴趣的部分。
+[![1.png](https://i.postimg.cc/wjsSM5FP/1.png)](https://postimg.cc/18sWYqkc)
 
-![](http://ww2.sinaimg.cn/large/7853084cgw1fa3cqnu8s2g207i0dc4qp.gif)
 
 
