@@ -8,7 +8,9 @@ header-img: img/post-bg-ios9-web.jpg
 catalog: true
 tags:
     - Spring MCV
-​---
+---
+
+
 
 相比较于原生的servlet，我们为什么要使用Spring MVC 或Structs 等框架来开发Web应用？这个问题在Stackoverflow上有网友进行了讨论，下面是一些论点：
 
