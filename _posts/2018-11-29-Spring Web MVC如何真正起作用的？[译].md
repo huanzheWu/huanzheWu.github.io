@@ -10,6 +10,8 @@ tags:
     - Spring MCV
 ---
 
+> 原文：https://stackify.com/spring-mvc/
+
 ## 前言
 本文是对Spring Web MVC强大特性与内工作原理的深入研究，它是Spring Framework的一部分。在GitHub上提供了本文的源代码。
 
@@ -230,3 +232,34 @@ SimpleUrlHandlerMapping允许通过其URL将请求映射到某个处理bean。 �
 - 如果处理程序选择异步处理请求，则对请求进行短路处理
 
 ## 处理请求
+现在，Spring确定了请求的handler，以及handler的适配器，现在是时候来来处理请求了。下面是HandlerAdapter.handler()方法的签名，需要注意的是，handler可以选择如何来处理请求：
+- 将数据写入响应对象中，并返回null
+
+返回由DispatcherServlet呈现的ModelAndView对象
+
+```java
+@Nullable
+ModelAndView handle(HttpServletRequest request, 
+                    HttpServletResponse response, 
+                    Object handler) throws Exception;
+```
+
+有几种类型的处理程序。 以下是SimpleControllerHandlerAdapter处理Spring MVC控制器实例的方法（不要将它与@ Controller-annotated POJO混淆）。请注意controller handler如何返回ModelAndView对象，它并不会自动呈现视图：
+
+```java
+public ModelAndView handle(HttpServletRequest request, 
+  HttpServletResponse response, Object handler) throws Exception {
+    return ((Controller) handler).handleRequest(request, response);
+}
+```
+
+第二个是SimpleServletHandlerAdapter，它将常规Servlet作为请求处理程序。Servlet对ModelAndView一无所知，只是自己处理请求，将结果呈现在响应对象中。 所以这个适配器只返回null而不是ModelAndView：
+
+```java
+public ModelAndView handle(HttpServletRequest request, 
+  HttpServletResponse response, Object handler) throws Exception {
+    ((Servlet) handler).service(request, response);
+    return null;
+}
+```
+
