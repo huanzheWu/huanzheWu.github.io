@@ -35,7 +35,7 @@ for(int i = 1 ;i <= totalPage ;i++) {
     }
 ```
 通过日志，发现外部确实传递了一个非常大的参数：
-![](https://img2018.cnblogs.com/blog/610439/201809/610439-20180914171537456-2117831862.png)
+![](http://pj05m6t8l.bkt.clouddn.com/1_0.png)
 
 
 确认了当命中逻辑的时候，会进入一个死循环。在循环中不断进行字符串的拼接与list的Add操作，很快就会耗尽JVM堆内存导致Full GC。经过测算，实际上并不需要死循环，只要是一个比较大的循环，就能够引发Full GC。对`totlePage`的大小做了限定后，发布了新版本，没有再出现Full GC的问题。
@@ -47,11 +47,11 @@ for(int i = 1 ;i <= totalPage ;i++) {
 
 ## 如何确定bug可以导致CPU飙升？为何会引发OOM？
 1） 在Java服务上开启**JMX**，在本地使用[VisualVm](https://visualvm.github.io/ "VisualVm")来查看Java服务在运行过程中的内存、GC、线程等信息。VisualVM是Sun的一个OpenJDK项目，它是集成了多个JDK命令工具的一个可视化工具，它主要用来监控JVM的运行情况，可以用它来查看和浏览Heap Dump、Thread Dump、内存对象实例情况、GC执行情况、CPU消耗以及类的装载情况，也可以使用它来创建必要信息的日志。
-![](https://img2018.cnblogs.com/blog/610439/201809/610439-20180914171601606-395373695.png)
+![](http://pj05m6t8l.bkt.clouddn.com/1_1.png)
 
 
 可以看到逻辑被命中的时候，CPU确实是升到100%的，此时也发生了Full GC告警。尝试着多发了几次请求，服务直接就挂掉了。这里有个问题是：**不是已经Full GC了吗，为什么还会发生OOM？**实际上，虽然JVM已经开始回收内存，但是由于对象被引用，这些内存是回收不掉的。从GC日志可以看到回收的情况：
-![](https://img2018.cnblogs.com/blog/610439/201809/610439-20180914171611464-1898061671.png)
+![](http://pj05m6t8l.bkt.clouddn.com/1_2.png)
 
 
 从GC日志中可以看到，新生代的Eden区域与老年代都已经被占满。如果新生代放不下对象的时候，object会直接被放到老年代中。除了GC日志，也可以使用**jstat**命令来堆Java堆内存的使用情况进行统计展示:
@@ -59,7 +59,7 @@ for(int i = 1 ;i <= totalPage ;i++) {
 > jstat -gcutil 12309 1000 10
 
 1000为统计的间隔，单位为毫秒，10为统计的次数，输出如下：
-![](https://img2018.cnblogs.com/blog/610439/201809/610439-20180914171644184-360950821.png)
+![](http://pj05m6t8l.bkt.clouddn.com/1_3.png)
 
 从输出中同样可以看到E（Eden）区与O（Old）区都已经被占满了。其他几个输出项的含义如下：
 >- YGC: 从启动到采样时Young Generation GC的次数
@@ -72,13 +72,13 @@ for(int i = 1 ;i <= totalPage ;i++) {
 
 ## 如何获取占用CPU最高的线程id？
 2）可以登上机器，确认下是什么线程使CPU飙高。先**ps**查看Java进程的PID：
-![](https://img2018.cnblogs.com/blog/610439/201809/610439-20180914171735005-189532605.png)
+![](http://pj05m6t8l.bkt.clouddn.com/1_4.png)
 
 拿到进程pid后，可以使用**top**命令，来看是什么线程占用了CPU。
 > top -p 12309 -H
 
 `-p`用于指定进程，`-H`用于获取每个线程的信息，从top输出的内容，可以看到有四个线程占用了非常高的CPU：
-![](https://img2018.cnblogs.com/blog/610439/201809/610439-20180914171748829-1934986704.png)
+![](http://pj05m6t8l.bkt.clouddn.com/1_5.png)
 
 到这里可以拿到12313、12312、12311、12314这四个线程id。为了确定这些是什么线程，需要使用**jstack**命令来查看这几个是什么线程。
 
@@ -87,14 +87,14 @@ for(int i = 1 ;i <= totalPage ;i++) {
 > jstack -l 12309 > stack.log
 
 在线程堆栈信息中，线程id是使用十六进制来表示的。将上面四个四个线程id转换为16进制，分别是0X3019、0X3018、0x3017、0x301A。在stack.log中可以找到这几个线程：
-![](https://img2018.cnblogs.com/blog/610439/201809/610439-20180914171757933-129540261.png)
+![](http://pj05m6t8l.bkt.clouddn.com/1_6.png)
 
 
 到这里可以确定的是，死循环引发了Full GC,四个GC线程一直尝试着回收内存，这四个线程将CPU占满。
 
 ## 是哪些对象占用了内存？
 4）Full GC、OOM、CPU被占满的问题都得到了解答。那么再次遇到类似的线上问题时，如何确定或者缩小问题范围，找到导致问题的代码呢？这时候需要进一步观察的是Java堆内存的信息，查看是什么对象占用了内存。可以使用上文提到的VisualVM来生成headdump文件：
-![](https://img2018.cnblogs.com/blog/610439/201809/610439-20180914171805645-1217442888.png)
+![](http://pj05m6t8l.bkt.clouddn.com/1_7.png)
 
 
 也可以在机器上使用**jmap**命令来生成head dump文件。
@@ -102,13 +102,13 @@ for(int i = 1 ;i <= totalPage ;i++) {
 
 live这个参数表示我们需要抓取的是目前在生命周期内的内存对象，也就是说GC收不走的对象，在这种场景下，我们需要的就是这些内存的信息。生成了hprof文件后，可以拉回到本地，使用VisualVM来打开它进行分析。打开后可以看到：
 
-![](https://img2018.cnblogs.com/blog/610439/201809/610439-20180914171814568-448726500.png)
+![](http://pj05m6t8l.bkt.clouddn.com/1_9.png)
 
 从信息中可以看到，字符串char[]在占了内存的73%，因此可以确定的是内存泄漏与字符串有关。通常生成的headdump文件会很大，也可以使用下面的命令，来查看占用内存最多的类型：
 > jmap -histo 12309 > heap.log
 
 输出内容如下：
-![](https://img2018.cnblogs.com/blog/610439/201809/610439-20180914171821963-179832827.png)
+![](http://pj05m6t8l.bkt.clouddn.com/1_9.png)
 
 
 
@@ -119,7 +119,7 @@ live这个参数表示我们需要抓取的是目前在生命周期内的内存�
 > select map(top(heap.objects('java.util.ArrayList'), 'rhs.size - lhs.size', 5),"toHtml(it)+'='+it.size")   
 
 查询结果如下：
-![](https://img2018.cnblogs.com/blog/610439/201809/610439-20180914172322073-828703972.png)
+![](http://pj05m6t8l.bkt.clouddn.com/1_10.png)
 
 
 如何查找到相似度最高的字符串，还在继续学习研究中。
