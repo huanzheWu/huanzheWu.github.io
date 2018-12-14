@@ -12,6 +12,8 @@ tags:
 
 
 
+# 在Controller中解析请求参数
+
 来看一个场景。
 
 我们的工程代码中有一个bean，定义了`Student`学生的相关属性，`Student`类包括了两个字段用来描述学生姓名和班级：
@@ -66,6 +68,8 @@ public class AddStudentInfoController {
     }
 }
 ```
+
+# 一种更优雅的参数解析方式
 
 这个Controller把请求的参数值解析到了Student类中。这种做法并不是太优雅，它强依赖于`HttpServletRequest` ,需要从`HttpServletRequest`中取得参数来拼出`Student`来。实际上，把请求参数解析到某个类型的工作，不应该让`Controller`来完成，我们有更好的方法来做参数解析，我们期待的`Controller`应该是这样的：
 
@@ -162,5 +166,5 @@ public class AddStudentInfoController {
 
 这时，凡是有`@ToResolver`注解的参数，都会调用对应的`resolveArgument函数`来进行参数解析。
 
-
+# 深入分析HandlerMethodArgumentResolver
 
