@@ -94,7 +94,7 @@ boolean supportsParameter(MethodParameter parameter);
 ``` java
 //将请求中的参数值解析为某种对象。
 @NullableObject 
-resolveArgument(
+Object resolveArgument(
 MethodParameter parameter,
 @Nullable ModelAndViewContainer mavContainer,      		
 NativeWebRequest webRequest, 
